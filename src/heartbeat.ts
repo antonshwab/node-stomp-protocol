@@ -12,7 +12,7 @@ export class Heartbeat {
     public static defaultOptions: IHeartbeatOptions = { outgoingPeriod: 0, incomingPeriod: 0 };
 
     options: IHeartbeatOptions;
-    optionsString = `${this.options.outgoingPeriod},${this.options.incomingPeriod}`;
+    optionsString: string;
 
     incomingPeriod?: number;
     outgoingPeriod?: number;
@@ -27,7 +27,26 @@ export class Heartbeat {
         options: IHeartbeatOptions = Heartbeat.defaultOptions) {
 
         this.options = options;
+        this.optionsString = `${this.options.outgoingPeriod},${this.options.incomingPeriod}`;
+
         this.frameLayer.emitter.on("frame", (frame) => this.onFrame(frame));
+        this.frameLayer.stream.emitter.on("data", (data) => this.onData(data));
+
+        this.frameLayer.stream.emitter.on("end", () => {
+            this.releaseTimers()
+        });
+
+        this.frameLayer.emitter.on("end", () => {
+            this.releaseTimers()
+        });
+
+        this.frameLayer.emitter.on("error", () => {
+            this.releaseTimers()
+        });
+    }
+
+    onData(data: string) {
+        this.lastIncoming = Date.now();
     }
 
     onFrame(frame: StompFrame) {
@@ -70,12 +89,17 @@ export class Heartbeat {
     }
 
     resetupOutgoingTimer() {
-        this.resetTimer(this.outgoingTimer);
+        this.releaseTimer(this.outgoingTimer);
         this.setupOutgoingTimer();
     }
 
-    resetTimer(timer?: NodeJS.Timer) {
+    releaseTimer(timer?: NodeJS.Timer) {
         timer && clearInterval(timer);
+    }
+
+    releaseTimers() {
+        this.releaseTimer(this.incomingTimer);
+        this.releaseTimer(this.outgoingTimer);
     }
 
     setupIncomingTimer() {
@@ -84,10 +108,8 @@ export class Heartbeat {
             this.incomingTimer = setInterval(() => {
                 const delta = Date.now() - this.lastIncoming;
                 if (delta > 2 * period && this.lastIncoming > 0) {
-                    this.frameLayer.error(new StompError(`No heartbeat for the last 2*${period} ms`));
-                    this.resetTimer(this.incomingTimer);
-                    this.resetTimer(this.outgoingTimer);
                     this.frameLayer.close();
+                    this.frameLayer.error(new StompError(`No heartbeat for the last 2*${period} ms`));
                 }
             }, period);
         }

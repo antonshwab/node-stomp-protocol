@@ -4,7 +4,7 @@ import {
     StompClientCommandListener, StompServerCommandListener
 } from '../src/protocol'
 import { createStompServerSession, createStompClientSession } from '../src/index';
-import {  countdownLatch, noopFn, noopAsyncFn } from './helpers';
+import { countdownLatch, noopFn, noopAsyncFn } from './helpers';
 import { createServer, Server, createConnection, Socket } from 'net';
 import * as WebSocket from 'ws';
 

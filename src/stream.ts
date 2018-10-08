@@ -147,7 +147,6 @@ class StompWebSocketStreamLayer implements StompStreamLayer {
         log.debug("StompWebSocketStreamLayer: closing");
         return new Promise((resolve, reject) => {
             try {
-                this.removeListeners();
                 this.webSocket.close();
             } catch (err) {
                 log.debug("StompWebSocketStreamLayer: error while closing %O", err);
